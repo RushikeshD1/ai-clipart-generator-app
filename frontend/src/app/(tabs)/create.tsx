@@ -1,56 +1,95 @@
 import React, { useContext, useState } from "react";
-import { ActivityIndicator, Button, Image, Text, View, ScrollView } from "react-native";
+import {
+  ActivityIndicator,
+  Button,
+  Image,
+  Text,
+  View,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { AppContext } from "../context/AppContext";
 import { useRouter } from "expo-router";
-import * as ImagePicker from 'expo-image-picker';
+import * as ImagePicker from "expo-image-picker";
+
+// ✅ Change this based on your device
+//const BASE_URL = "http://10.0.2.2:5000";  // Android emulator
+const BASE_URL = "http://localhost:5000";       // iOS simulator
+// const BASE_URL = "http://192.168.1.x:5000";    // Physical device — replace x with your IP
 
 const Create = () => {
   const router = useRouter();
   const appContext = useContext(AppContext);
   if (!appContext) return null;
 
-  const { selectedStyle, setSelectedStyle, generatedImage, setGeneratedImage, addToGallery } = appContext;
-  const [userImage, setUserImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const {
+    selectedStyle,
+    setSelectedStyle,
+    generatedImage,
+    setGeneratedImage,
+    addToGallery,
+  } = appContext;
+
+  const [userImage, setUserImage]             = useState<string | null>(null);
+  const [userImageBase64, setUserImageBase64] = useState<string | null>(null);
+  const [loading, setLoading]                 = useState(false);
 
   // Pick image from device
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled) {
       setUserImage(result.assets[0].uri);
+      setUserImageBase64(result.assets[0].base64 || null);
     }
   };
 
-  // Generate AI image based on style + picked image
+  // Generate AI image
   const generateAIImage = async () => {
-    if (!userImage) return alert("Please pick an image first!");
+    if (!selectedStyle) return Alert.alert("Error", "No style selected!");
     setLoading(true);
 
-    const finalPrompt = selectedStyle!.prompt;
+    try {
+      const response = await fetch(`${BASE_URL}/api/generate`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt:    selectedStyle.prompt,
+          userImage: userImageBase64 || null,
+        }),
+      });
 
-    // Simulate AI API call
-    await new Promise((r) => setTimeout(r, 2000));
-    setGeneratedImage("https://via.placeholder.com/512.png"); // placeholder AI image
-    setLoading(false);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to generate image");
+
+      setGeneratedImage(data.uri);
+
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Error", error.message || "Error generating AI image");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Save to gallery
   const saveToGallery = () => {
     if (!generatedImage) return;
     addToGallery({
-      id: Date.now(),
-      uri: generatedImage,
-      style: selectedStyle!.title,
-      prompt: selectedStyle!.prompt,
+      id:        Date.now(),
+      uri:       generatedImage,
+      style:     selectedStyle!.title,
+      prompt:    selectedStyle!.prompt,
       createdAt: new Date().toISOString(),
     });
-    alert("Saved to gallery!");
+    Alert.alert("Success", "Saved to gallery!");
     setGeneratedImage(null);
     setUserImage(null);
+    setUserImageBase64(null);
   };
 
   // Undo style selection
@@ -58,9 +97,9 @@ const Create = () => {
     setSelectedStyle(null);
     setGeneratedImage(null);
     setUserImage(null);
+    setUserImageBase64(null);
   };
 
-  // Step 1: No style selected → show button to navigate to Style page
   if (!selectedStyle) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
@@ -72,9 +111,8 @@ const Create = () => {
     );
   }
 
-  // Step 2: Style selected → pick image + generate AI
   return (
-    <ScrollView style={{ padding: 20 }}>
+    <ScrollView style={{ padding: 20 }} className="mb-8">
       <Button title="Back to Styles" onPress={() => router.push("/")} />
       <Button title="Undo Style Selection" onPress={undoStyle} color="red" />
 
@@ -87,7 +125,7 @@ const Create = () => {
         style={{ width: 200, height: 200, borderRadius: 10, marginBottom: 10 }}
       />
 
-      <Button title="Pick Image from Device" onPress={pickImage} />
+      <Button title="Pick Image from Device (Optional)" onPress={pickImage} />
 
       {userImage && (
         <Image
@@ -96,9 +134,15 @@ const Create = () => {
         />
       )}
 
-      <Button title="Generate AI Image" onPress={generateAIImage} disabled={!userImage} />
+      <Button
+        title={loading ? "Generating..." : "Generate AI Image"}
+        onPress={generateAIImage}
+        disabled={loading}
+      />
 
-      {loading && <ActivityIndicator size="large" color="blue" style={{ marginVertical: 10 }} />}
+      {loading && (
+        <ActivityIndicator size="large" color="blue" style={{ marginVertical: 10 }} />
+      )}
 
       {generatedImage && (
         <>

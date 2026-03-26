@@ -5,7 +5,7 @@ export const ANIME_STYLES = [
     previewImage: require("../../../assets/images/anime/anime1.webp"),
     styleKey: "anime",
     prompt:
-      "anime style portrait, clean line art, soft shading, large expressive eyes, studio ghibli inspired",
+      "Anime style illustration, same composition, same pose, same face, highly detailed anime, clean line art, soft shading, studio ghibli style",
   },
   {
     id: "2",
