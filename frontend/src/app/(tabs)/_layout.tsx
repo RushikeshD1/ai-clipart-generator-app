@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text, View } from "react-native";
+import { BlurView } from "expo-blur";
 
 const TabRoot = () => {
   return (
@@ -34,10 +35,19 @@ const TabRoot = () => {
           elevation: 0,
           position: "absolute",
         },
+        tabBarBackground: () => (
+          <BlurView
+            intensity={45}
+            tint="light"
+            style={{
+              flex: 1,
+            }}
+          />
+        )
       }}
     >
       <Tabs.Screen
-        name="style"
+        name="index"
         options={{
           title: "STYLE",
           tabBarIcon: ({ color, size }) => (
@@ -47,7 +57,7 @@ const TabRoot = () => {
       />
 
       <Tabs.Screen
-        name="index"
+        name="create"
         options={{
           title: "",
           tabBarIcon: ({ color, size }) => (

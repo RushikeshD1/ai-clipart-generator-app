@@ -10,7 +10,7 @@ export const CARTOON_STYLES = [
   {
     id: "2",
     title: "3D Cartoon",
-    previewImage: "https://yourcdn.com/cartoon2.png",
+    previewImage: require("../../../assets/images/cartoon/cartoon-character.webp"),
     styleKey: "cartoon",
     prompt:
       "3d cartoon character, pixar style, soft lighting, rounded face, high quality"
@@ -18,7 +18,7 @@ export const CARTOON_STYLES = [
   {
     id: "3",
     title: "3D Cartoon",
-    previewImage: "https://yourcdn.com/cartoon2.png",
+    previewImage: require("../../../assets/images/cartoon/boolun.webp"),
     styleKey: "cartoon",
     prompt:
       "3d cartoon character, pixar style, soft lighting, rounded face, high quality"
