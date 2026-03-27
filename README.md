@@ -10,7 +10,7 @@ AI ClipArt Generator is a mobile app built with Expo React Native that converts 
 | Resource | Link |
 |---|---|
 | 📦 **APK Download** | [Download from Google Drive](https://drive.google.com/your-apk-link) |
-| 🎥 **Screen Recording** | [Watch Demo on Google Drive](https://drive.google.com/your-demo-link) |
+| 🎥 **Screen Recording** | [Watch Demo on Google Drive](https://drive.google.com/file/d/1GL7x63ktCoO1mktzilQNjRgK2-qEWhuH/view?usp=sharing) |
 
 > ⚠️ To install the APK: enable **"Install from unknown sources"** in your Android settings before installing.
 
