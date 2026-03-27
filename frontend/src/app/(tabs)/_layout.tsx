@@ -3,7 +3,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
 
 const TabRoot = () => {
@@ -33,17 +33,35 @@ const TabRoot = () => {
           backgroundColor: "transparent",
           borderTopWidth: 0,
           elevation: 0,
+          height: 80,
           position: "absolute",
+          overflow: "visible",
         },
         tabBarBackground: () => (
           <BlurView
-            intensity={45}
+            intensity={60}
             tint="light"
+            experimentalBlurMethod={
+              Platform.OS === "android"
+                ? "dimezisBlurView"
+                : undefined
+            }
             style={{
               flex: 1,
             }}
-          />
+          >
+            {/* ✅ Android fallback */}
+            {Platform.OS === "android" && (
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(255,255,255,0.85)",
+                }}
+              />
+            )}
+          </BlurView>
         )
+        
       }}
     >
       <Tabs.Screen
@@ -59,25 +77,40 @@ const TabRoot = () => {
       <Tabs.Screen
         name="create"
         options={{
-          title: "",
-          tabBarIcon: ({ color, size }) => (
+          tabBarLabel: () => null,
+
+          tabBarItemStyle: {
+            overflow: "visible",
+            paddingBottom: 12,
+          },
+
+          tabBarIcon: () => (
             <View
               style={{
+                marginTop: -35,
+                alignItems: "center",
+                justifyContent: "center",
                 shadowColor: "#000",
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.18,
-                shadowRadius: 4,
-                elevation: 5,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 3,
+                elevation: 10,
+                borderRadius: 50
               }}
-              className="rounded-full -mt-4"
             >
               <LinearGradient
                 colors={["#5548E7", "#208AC2", "#36EBAE"]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                className="rounded-full p-4"
+                end={{ x: 1, y: 1 }}
+                style={{
+                  width: 68,
+                  height: 68,
+                  borderRadius: 34,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                <MaterialCommunityIcons name="plus" size={32} color="white" />
+                <MaterialCommunityIcons name="plus" size={34} color="#fff" />
               </LinearGradient>
             </View>
           ),

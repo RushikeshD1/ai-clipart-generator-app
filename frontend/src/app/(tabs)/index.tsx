@@ -47,6 +47,11 @@ const Index = () => {
       className="flex-1 mb-8"
       showsVerticalScrollIndicator={false}
       accessible={false}
+      style={{ flex: 1 }}
+      contentContainerStyle={{        
+        paddingBottom: 60, // 🔥 space for tab bar + button
+      }}
+  
     >
     <View className="p-4">
       <Text className="text-xl font-semibold mb-3">Cartoon</Text>

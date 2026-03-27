@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Types for styles and gallery images
+// Types
 export type StyleType = {
   id: string;
   title: string;
@@ -17,7 +17,6 @@ export type GalleryImageType = {
   createdAt: string;
 };
 
-// Context type
 type AppContextType = {
   selectedStyle: StyleType | null;
   setSelectedStyle: (style: StyleType) => void;
@@ -27,24 +26,22 @@ type AppContextType = {
   setGeneratedImage: (uri: string) => void;
   galleryImages: GalleryImageType[];
   addToGallery: (image: GalleryImageType) => void;
+  removeFromGallery: (id: number) => void;
 };
 
-// Create context
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Props type for Provider
 type AppProviderProps = {
   children: ReactNode;
 };
 
-// AppProvider component
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [selectedStyle, setSelectedStyle] = useState<StyleType | null>(null);
   const [userPrompt, setUserPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [galleryImages, setGalleryImages] = useState<GalleryImageType[]>([]);
 
-  // Load gallery from AsyncStorage
+  // Load gallery
   useEffect(() => {
     const loadGallery = async () => {
       const data = await AsyncStorage.getItem("@galleryImages");
@@ -53,11 +50,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     loadGallery();
   }, []);
 
-  // Add image to gallery
+  // Add image
   const addToGallery = async (image: GalleryImageType) => {
-    const newGallery = [image, ...galleryImages];
-    setGalleryImages(newGallery);
-    await AsyncStorage.setItem("@galleryImages", JSON.stringify(newGallery));
+    setGalleryImages(prev => {
+      const updatedGallery = [image, ...prev];
+      AsyncStorage.setItem(
+        "@galleryImages",
+        JSON.stringify(updatedGallery)
+      );
+      return updatedGallery;
+    });
+  };
+
+  // Delete image ✅ FIXED
+  const removeFromGallery = async (id: number) => {
+    console.log("app provider hit, id", id)
+    setGalleryImages(prev => {
+      const updatedGallery = prev.filter(img => img.id !== id);
+      AsyncStorage.setItem(
+        "@galleryImages",
+        JSON.stringify(updatedGallery)
+      );
+      return updatedGallery;
+    });
   };
 
   return (
@@ -71,6 +86,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setGeneratedImage,
         galleryImages,
         addToGallery,
+        removeFromGallery,
       }}
     >
       {children}
