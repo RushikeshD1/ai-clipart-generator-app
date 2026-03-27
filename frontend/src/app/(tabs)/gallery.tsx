@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Text,
   View,
@@ -6,9 +6,15 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  Dimensions,
+  Dimensions
 } from "react-native";
 import { AppContext } from "../context/AppContext";
+import * as MediaLibrary from "expo-media-library";
+import * as FileSystem from "expo-file-system/legacy";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { styles } from "../styles/gallery.style";
+import GallerySkeleton from "../components/GallerySkeleton";
+import * as Sharing from 'expo-sharing';
 
 const { width } = Dimensions.get("window");
 const IMAGE_SIZE = (width - 48) / 2;
@@ -18,157 +24,137 @@ const Gallery = () => {
   if (!appContext) return null;
 
   const { galleryImages, removeFromGallery } = appContext;
+  const [loading, setLoading] = useState(true);
 
-  const confirmDelete = (id: number) => {
-    console.log("comfirmDelete hit", id)
-    Alert.alert(
-      "Delete Image",
-      "Are you sure you want to remove this image?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            console.log("Deleting image id:", id);
-            removeFromGallery(id);
-          },
-        },
-      ]
-    );
+  useEffect(() => {
+    MediaLibrary.requestPermissionsAsync();
+    const timer = setTimeout(() => setLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const saveToGallery = async (imageUri: string) => {
+    try {
+      let localUri = imageUri;
+
+      if (imageUri.startsWith("data:image")) {
+        const base64 = imageUri.split(",")[1];
+        localUri = FileSystem.cacheDirectory + `clipart-${Date.now()}.png`;
+
+        await FileSystem.writeAsStringAsync(localUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
+      const asset = await MediaLibrary.createAssetAsync(localUri);
+      await MediaLibrary.createAlbumAsync("AI Clipart", asset, false);
+
+      Alert.alert("Saved", "Image added to device gallery 📸");
+    } catch {
+      Alert.alert("Error", "Failed to save image");
+    }
   };
 
-  // ✅ Empty State
-  if (!galleryImages || galleryImages.length === 0) {
+  const confirmDelete = (id: number) => {
+    Alert.alert("Delete Image", "Remove this image from app gallery?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => removeFromGallery(id) },
+    ]);
+  };
+
+  const shareImage = async (imageUri: string) => {
+  try {
+    let uri = imageUri;
+
+    // If base64, write to a temporary file
+    if (imageUri.startsWith("data:image")) {
+      const base64 = imageUri.split(",")[1];
+      uri = FileSystem.cacheDirectory + `clipart-share-${Date.now()}.png`;
+
+      await FileSystem.writeAsStringAsync(uri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    }
+
+    // Expo Sharing requires file:// URI
+    if (!uri.startsWith("file://")) {
+      uri = "file://" + uri;
+    }
+
+    // Check if sharing is available
+    const available = await Sharing.isAvailableAsync();
+    if (!available) {
+      Alert.alert("Error", "Sharing is not available on this device");
+      return;
+    }
+
+    await Sharing.shareAsync(uri, {
+      dialogTitle: "Check out this clipart!",
+    });
+  } catch (error) {
+    console.log(error);
+    Alert.alert("Error", "Failed to share image");
+  }
+};
+
+  if (loading) return <GallerySkeleton />;
+
+  if (!galleryImages.length) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-        }}
-      >
-        <Text style={{ fontSize: 48, marginBottom: 16 }}>🎨</Text>
-        <Text
-          style={{
-            textAlign: "center",
-            fontWeight: "600",
-            fontSize: 18,
-            color: "gray",
-          }}
-        >
-          Your gallery is empty.
-          {"\n"}Create and save clipart to see them here.
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyEmoji}>🎨</Text>
+        <Text style={styles.emptyText}>
+          No clipart yet.
+          {"\n"}Create and save your first design.
         </Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f9f9f9" }}>
+    <View style={{ flex: 1, backgroundColor: "#F7F8FA" }}>
       {/* Header */}
-      <View
-        style={{
-          padding: 16,
-          backgroundColor: "#fff",
-          borderBottomWidth: 1,
-          borderBottomColor: "#eee",
-        }}
-      >
-        <Text style={{ fontSize: 22, fontWeight: "bold" }}>
-          🎨 My Gallery
-        </Text>
-        <Text style={{ color: "gray", marginTop: 4 }}>
-          {galleryImages.length} image
-          {galleryImages.length !== 1 ? "s" : ""} saved
-        </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Gallery</Text>
+        <Text style={styles.subtitle}>{galleryImages.length} saved images</Text>
       </View>
 
-      {/* Image Grid */}
+      {/* Grid */}
       <FlatList
         data={galleryImages}
         keyExtractor={(item) => item.id.toString()}
         numColumns={2}
-        contentContainerStyle={{
-          padding: 12,
-          paddingBottom: 100,
-        }}
-        columnWrapperStyle={{
-          justifyContent: "space-between",
-          marginBottom: 12,
-        }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
+        columnWrapperStyle={{ justifyContent: "space-between" }}
         renderItem={({ item }) => (
-          <View
-            style={{
-              width: IMAGE_SIZE,
-              backgroundColor: "#fff",
-              borderRadius: 12,
-              overflow: "hidden",
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowRadius: 6,
-              elevation: 3,
-            }}
-          >
-            {/* Image */}
+          <View style={styles.card}>
             <Image
               source={{ uri: item.uri }}
-              style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
+              style={styles.image}
               resizeMode="cover"
             />
 
-            {/* Info */}
-            <View style={{ padding: 8 }}>
-              <Text
-                style={{
-                  fontWeight: "bold",
-                  fontSize: 13,
-                  color: "#333",
-                }}
-                numberOfLines={1}
-              >
-                {item.style}
-              </Text>
-
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: "gray",
-                  marginTop: 2,
-                }}
-                numberOfLines={2}
-              >
-                {item.prompt}
-              </Text>
-
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: "#bbb",
-                  marginTop: 4,
-                }}
-              >
-                {new Date(item.createdAt).toLocaleDateString()}
-              </Text>
-            </View>
-
-            {/* Delete Button */}
+            {/* Delete */}
             <TouchableOpacity
+              style={styles.deleteBtn}
               onPress={() => confirmDelete(item.id)}
-              style={{
-                position: "absolute",
-                top: 6,
-                right: 6,
-                backgroundColor: "rgba(0,0,0,0.55)",
-                borderRadius: 20,
-                width: 28,
-                height: 28,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
             >
-              <Text style={{ color: "#fff", fontSize: 14 }}>✕</Text>
+              <MaterialCommunityIcons name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Save */}
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={() => saveToGallery(item.uri)}
+            >
+              <MaterialCommunityIcons name="download" size={18} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Share button (next to download) */}
+            <TouchableOpacity
+              style={[styles.saveBtn, { right: 48 }]} // shift left of download
+              onPress={() => shareImage(item.uri)}
+            >
+              <MaterialCommunityIcons name="share-variant" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         )}

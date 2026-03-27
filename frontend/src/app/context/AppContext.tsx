@@ -27,6 +27,8 @@ type AppContextType = {
   galleryImages: GalleryImageType[];
   addToGallery: (image: GalleryImageType) => void;
   removeFromGallery: (id: number) => void;
+  stylesLoaded: boolean;
+  setStylesLoaded: (prompt: boolean) => void;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [userPrompt, setUserPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [galleryImages, setGalleryImages] = useState<GalleryImageType[]>([]);
+  const [stylesLoaded, setStylesLoaded] = useState(false);
 
   // Load gallery
   useEffect(() => {
@@ -87,6 +90,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         galleryImages,
         addToGallery,
         removeFromGallery,
+        stylesLoaded,
+        setStylesLoaded
       }}
     >
       {children}

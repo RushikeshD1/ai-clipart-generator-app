@@ -1,18 +1,17 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Text,
   View,
   ScrollView,
   Alert,
   TouchableOpacity,
-  StyleSheet,
 } from "react-native";
 import { AppContext } from "../context/AppContext";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { styles } from "../styles/create.style";
+import CreateSkeleton from "../components/CreateSkeleton";
 
 const BASE_URL = "https://ai-clipart-generator-app.vercel.app";
 
@@ -47,7 +46,7 @@ const Create = () => {
   };
 
   const generateAIImage = async () => {
-    if (!selectedStyle) return Alert.alert("Error", "No style selected!");
+    if (!selectedStyle || !userImage) return;
     setLoading(true);
 
     try {
@@ -56,17 +55,16 @@ const Create = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: selectedStyle.prompt,
-          userImage: userImageBase64 || null,
+          userImage: userImageBase64,
         }),
       });
 
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.message || "Failed to generate image");
+      if (!response.ok) throw new Error("Generation failed");
 
       setGeneratedImage(data.uri);
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Error generating AI image");
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
     } finally {
       setLoading(false);
     }
@@ -81,6 +79,7 @@ const Create = () => {
       prompt: selectedStyle!.prompt,
       createdAt: new Date().toISOString(),
     });
+
     Alert.alert("Saved", "Image added to gallery");
     setGeneratedImage(null);
     setUserImage(null);
@@ -113,65 +112,72 @@ const Create = () => {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 120 }}
     >
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.push("/")}>
-          <Text style={styles.link}>← Styles</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={undoStyle}>
-          <Text style={[styles.link, { color: "#e53935" }]}>Reset</Text>
-        </TouchableOpacity>
-      </View>
+      {loading ? (
+        <CreateSkeleton />
+      ) : (
+        <>
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => router.push("/")}>
+              <Text style={styles.link}>← Styles</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={undoStyle}>
+              <Text style={[styles.link, { color: "#e53935" }]}>Reset</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Style Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{selectedStyle.title}</Text>
-        <Image
-          source={selectedStyle.previewImage}
-          style={styles.previewImage}
-        />
-      </View>
+          {/* Style Card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{selectedStyle.title}</Text>
+            <Image
+              source={selectedStyle.previewImage}
+              style={styles.previewImage}
+            />
+          </View>
 
-      {/* Upload Section */}
-      <View style={styles.card}>
-        
+          {/* Upload */}
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={pickImage}
+            >
+              <Text style={styles.secondaryText}>Pick from device</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryBtn} onPress={pickImage}>
-          <Text style={styles.secondaryText}>Pick from device</Text>
-        </TouchableOpacity>
+            {userImage && (
+              <Image source={{ uri: userImage }} style={styles.userImage} />
+            )}
+          </View>
 
-        {userImage && (
-          <Image source={{ uri: userImage }} style={styles.userImage} />
-        )}
-      </View>
-
-      {/* Generate */}
-      <TouchableOpacity
-        style={[
-    styles.primaryBtn,
-    (!userImage || loading) && { opacity: 0.5 },
-  ]}
-        onPress={generateAIImage}
-        disabled={loading || !userImage}
-      >
-        <Text style={styles.primaryText}>
-          {loading ? "Generating..." : "Generate AI Image"}
-        </Text>
-      </TouchableOpacity>
-
-      {loading && (
-        <ActivityIndicator size="large" color="#5548E7" style={{ marginTop: 20 }} />
-      )}
-
-      {/* Result */}
-      {generatedImage && (
-        <View style={styles.resultCard}>
-          <Image source={{ uri: generatedImage }} style={styles.resultImage} />
-
-          <TouchableOpacity style={styles.primaryBtn} onPress={saveToGallery}>
-            <Text style={styles.primaryText}>Save to Gallery</Text>
+          {/* Generate */}
+          <TouchableOpacity
+            style={[
+              styles.primaryBtn,
+              !userImage && { opacity: 0.5 },
+            ]}
+            onPress={generateAIImage}
+            disabled={!userImage}
+          >
+            <Text style={styles.primaryText}>Generate AI Image</Text>
           </TouchableOpacity>
-        </View>
+
+          {/* Result */}
+          {generatedImage && (
+            <View style={styles.resultCard}>
+              <Image
+                source={{ uri: generatedImage }}
+                style={styles.resultImage}
+              />
+
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={saveToGallery}
+              >
+                <Text style={styles.primaryText}>Save to Gallery</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
       )}
     </ScrollView>
   );
